@@ -6,10 +6,20 @@ package com.hucw.coolweather.model;
  * @version 1.0.0
  */
 public class County {
+    public static final String TABLE_NAME = "County";
+
     private int id;
     private String countyName;
     private String countyCode;
     private int cityId;
+
+    public County() {}
+
+    public County(String countyName, String countyCode, int cityId) {
+        this.countyName = countyName;
+        this.countyCode = countyCode;
+        this.cityId = cityId;
+    }
 
     public int getId() {
         return id;

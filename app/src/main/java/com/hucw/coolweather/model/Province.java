@@ -1,17 +1,23 @@
 package com.hucw.coolweather.model;
 
 /**
- * 省份
+ * 省份数据管理
  * @author  hucw
  * @version 1.0.0
  */
 public class Province {
     public static final String TABLE_NAME = "Province";
 
-
     private int id;
     private String provinceName;
     private String provinceCode;
+
+    public Province() {}
+
+    public Province(String provinceName, String provinceCode) {
+        this.provinceName = provinceName;
+        this.provinceCode = provinceCode;
+    }
 
     public String getProvinceCode() {
         return provinceCode;

@@ -3,21 +3,25 @@ package com.hucw.coolweather.db;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
+import android.widget.Toast;
 
 /**
  * Android SQLite数据库辅助类
  * @author  hucw
  * @version 1.0.0
  */
-public class DbOpenHelper extends SQLiteOpenHelper {
+public class CoolWeatherDBHelper extends SQLiteOpenHelper {
+    private static final String TAG = "CoolWeatherDBHelper";
 
     /** Province表建表语句 */
-    public static final String CREATE_PROVINCE = "create table Province (" + "id integer primary key autoincrement, "
+    private static final String CREATE_PROVINCE = "create table Province ("
+            + "id integer primary key autoincrement, "
             + "province_name text, "
             + "province_code text)";
 
     /** City表建表语句 */
-    public static final String CREATE_CITY = "create table City ("
+    private static final String CREATE_CITY = "create table City ("
             + "id integer primary key autoincrement, "
             + "city_name text, "
             + "city_code text, "
@@ -25,20 +29,23 @@ public class DbOpenHelper extends SQLiteOpenHelper {
 
 
     /** County表建表语句 */
-    public static final String CREATE_COUNTY = "create table County ("
+    private static final String CREATE_COUNTY = "create table County ("
             + "id integer primary key autoincrement, "
             + "county_name text, "
             + "county_code text, "
             + "city_id integer)";
 
-
-    public DbOpenHelper(Context context, String name, SQLiteDatabase.CursorFactory factory, int version) {
+    public CoolWeatherDBHelper(Context context, String name, SQLiteDatabase.CursorFactory factory, int version) {
         super(context, name, factory, version);
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
+        Log.d(TAG, "开始创建表");
 
+        db.execSQL(CREATE_PROVINCE);
+        db.execSQL(CREATE_CITY);
+        db.execSQL(CREATE_COUNTY);
     }
 
     @Override
