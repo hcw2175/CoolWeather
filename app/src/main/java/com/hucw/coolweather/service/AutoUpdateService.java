@@ -11,6 +11,7 @@ import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
+import com.hucw.coolweather.receiver.AutoUpdateReceiver;
 import com.hucw.coolweather.util.HttpCallbackListener;
 import com.hucw.coolweather.util.HttpUtil;
 import com.hucw.coolweather.util.ResponseUtil;
@@ -40,9 +41,13 @@ public class AutoUpdateService extends Service {
 
         // 设置定时任务
         AlarmManager manager = (AlarmManager) getSystemService(ALARM_SERVICE);
-        int anHour = 8*60*60*1000; // 每8小时更新
+
+        // 更新间隔：8小时
+        int anHour = 8*60*60*1000;
         long triggerAtTime = SystemClock.elapsedRealtime() + anHour;
-        Intent i = new Intent(this, AutoUpdateService.class);
+
+        // 设置任务接收器
+        Intent i = new Intent(this, AutoUpdateReceiver.class);
         PendingIntent pi = PendingIntent.getBroadcast(this, 0, i, 0);
         manager.set(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtTime, pi);
 
