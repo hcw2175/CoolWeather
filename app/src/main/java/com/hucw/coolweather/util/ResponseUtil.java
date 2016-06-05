@@ -32,7 +32,12 @@ public class ResponseUtil {
      * @param response      数据，格式如：01|北京,02|天津
      * @return 处理结果
      */
-    public synchronized static boolean handleProvinceReponse(CoolWeatherDB coolWeatherDB, String response){
+    public synchronized static boolean handleProvinceResponse(CoolWeatherDB coolWeatherDB, String response){
+        if(response.contains("<!DOCTYPE HTML>")){
+            Log.d(TAG, "数据请求错误");
+            return false;
+        }
+
         if(TextUtils.isEmpty(response)){
             Log.d(TAG, "返回的省份数据为空， 无法进行处理");
             return false;
@@ -58,7 +63,12 @@ public class ResponseUtil {
      * @param provinceId    所属省份id
      * @return 处理结果
      */
-    public synchronized static boolean handleCityReponse(CoolWeatherDB coolWeatherDB, String response, int provinceId){
+    public synchronized static boolean handleCityResponse(CoolWeatherDB coolWeatherDB, String response, int provinceId){
+        if(response.contains("<!DOCTYPE HTML>")){
+            Log.d(TAG, "数据请求错误");
+            return false;
+        }
+
         if(TextUtils.isEmpty(response)){
             Log.d(TAG, "返回的城市数据为空， 无法进行处理");
             return false;
@@ -84,7 +94,12 @@ public class ResponseUtil {
      * @param cityId        所属城市id
      * @return 处理结果
      */
-    public synchronized static boolean handleCountyReponse(CoolWeatherDB coolWeatherDB, String response, int cityId){
+    public synchronized static boolean handleCountyResponse(CoolWeatherDB coolWeatherDB, String response, int cityId){
+        if(response.contains("<!DOCTYPE HTML>")){
+            Log.d(TAG, "数据请求错误");
+            return false;
+        }
+
         if(TextUtils.isEmpty(response)){
             Log.d(TAG, "返回的县区数据为空， 无法进行处理");
             return false;

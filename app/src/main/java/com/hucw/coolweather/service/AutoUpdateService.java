@@ -10,11 +10,22 @@ import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
+import android.util.Log;
 
+import com.hucw.coolweather.activity.WeatherActivity;
+import com.hucw.coolweather.api.WeatherService;
+import com.hucw.coolweather.helper.RetrofitHelper;
 import com.hucw.coolweather.receiver.AutoUpdateReceiver;
 import com.hucw.coolweather.util.HttpCallbackListener;
 import com.hucw.coolweather.util.HttpUtil;
 import com.hucw.coolweather.util.ResponseUtil;
+import com.squareup.okhttp.ResponseBody;
+
+import java.io.IOException;
+
+import retrofit.Callback;
+import retrofit.Response;
+import retrofit.Retrofit;
 
 /**
  * 后台自动更新天气服务
@@ -58,16 +69,20 @@ public class AutoUpdateService extends Service {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         String weatherCode = sharedPreferences.getString("weather_code", "");
         if(!TextUtils.isEmpty(weatherCode)){
-            String address = "http://www.weather.com.cn/data/cityinfo/" + weatherCode + ".html";
-            HttpUtil.sendHttpRequest(address, new HttpCallbackListener() {
+            WeatherService weatherService = RetrofitHelper.createApi(this, WeatherService.class);
+            weatherService.getWeatherInfo(weatherCode).enqueue(new Callback<ResponseBody>() {
                 @Override
-                public void onFinish(String response) {
-                    ResponseUtil.handleWeatherReponse(AutoUpdateService.this, response);
+                public void onResponse(Response<ResponseBody> response, Retrofit retrofit) {
+                    try {
+                        ResponseUtil.handleWeatherReponse(AutoUpdateService.this, response.body().string());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
 
                 @Override
-                public void onError(Exception e) {
-                    e.printStackTrace();
+                public void onFailure(Throwable t) {
+                    t.printStackTrace();
                 }
             });
         }

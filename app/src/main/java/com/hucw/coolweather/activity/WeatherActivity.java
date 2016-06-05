@@ -14,10 +14,19 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.hucw.coolweather.R;
+import com.hucw.coolweather.api.WeatherService;
+import com.hucw.coolweather.helper.RetrofitHelper;
 import com.hucw.coolweather.service.AutoUpdateService;
 import com.hucw.coolweather.util.HttpCallbackListener;
 import com.hucw.coolweather.util.HttpUtil;
 import com.hucw.coolweather.util.ResponseUtil;
+import com.squareup.okhttp.ResponseBody;
+
+import java.io.IOException;
+
+import retrofit.Callback;
+import retrofit.Response;
+import retrofit.Retrofit;
 
 /**
  * 天气管理Activity
@@ -61,7 +70,7 @@ public class WeatherActivity extends Activity {
             cityNameText.setVisibility(View.INVISIBLE);
             queryWeatherCode(countyCode);
         }else{
-            showWeather();
+            showWeather(true);
         }
 
         mBtnSwitchCity = (Button) findViewById(R.id.switch_city);
@@ -94,8 +103,34 @@ public class WeatherActivity extends Activity {
      * @param countyCode 县区代码
      */
     private void queryWeatherCode(String countyCode){
-        String address = ADDRESS_BASE + "/city" + countyCode + ".xml";
-        queryFromServer(address, "weatherCode");
+        /*String address = ADDRESS_BASE + "/city" + countyCode + ".xml";
+        queryFromServer(address, "weatherCode");*/
+        WeatherService weatherService = RetrofitHelper.createApi(this, WeatherService.class);
+        weatherService.findArea(countyCode).enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Response<ResponseBody> response, Retrofit retrofit) {
+                try {
+                    String resp = response.body().string();
+                    Log.d(TAG, "响应数据: " + resp);
+
+                    if(!TextUtils.isEmpty(resp)){
+                        String[] array = resp.split("\\|");
+                        if(array.length == 2){
+                            queryWeatherInfo(array[1]);
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                Log.d(TAG, "onFailure: 获取天气代码数据失败。");
+                t.printStackTrace();
+            }
+        });
     }
 
     /**
@@ -103,49 +138,40 @@ public class WeatherActivity extends Activity {
      * @param weatherCode 天气代号
      */
     private void queryWeatherInfo(String weatherCode){
-        String address = "http://www.weather.com.cn/data/cityinfo/" + weatherCode + ".html";
-        queryFromServer(address, "weatherInfo");
-    }
-
-    private void queryFromServer(final String address, final String type){
-        HttpUtil.sendHttpRequest(address, new HttpCallbackListener() {
+        WeatherService weatherService = RetrofitHelper.createApi(this, WeatherService.class);
+        weatherService.getWeatherInfo(weatherCode).enqueue(new Callback<ResponseBody>() {
             @Override
-            public void onFinish(String response) {
-                Log.d(TAG, "响应数据： " + response);
-                if(type.equalsIgnoreCase("weatherCode")){
-                    if(!TextUtils.isEmpty(response)){
-                        String[] array = response.split("\\|");
-                        if(array.length == 2){
-                            queryWeatherInfo(array[1]);
-                        }
-                    }
-                } else {
-                    ResponseUtil.handleWeatherReponse(WeatherActivity.this, response);
+            public void onResponse(Response<ResponseBody> response, Retrofit retrofit) {
+                try {
+                    String resp = response.body().string();
+                    Log.d(TAG, "响应数据: " + resp);
+
+                    ResponseUtil.handleWeatherReponse(WeatherActivity.this, resp);
+
                     // 通过runOnUiThread()方法回到主线程处理逻辑
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            showWeather();
+                            showWeather(false);
                         }
                     });
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
+
             }
 
             @Override
-            public void onError(Exception e) {
-                e.printStackTrace();
-
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        publishText.setText("同步失败");
-                    }
-                });
+            public void onFailure(Throwable t) {
+                Log.d(TAG, "onFailure: 天气同步失败。");
+                t.printStackTrace();
             }
         });
+       /* String address = "http://www.weather.com.cn/data/cityinfo/" + weatherCode + ".html";
+        queryFromServer(address, "weatherInfo");*/
     }
 
-    private void showWeather(){
+    private void showWeather(boolean startService){
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         cityNameText.setText(sharedPreferences.getString("city_name", ""));
         temp1Text.setText(sharedPreferences.getString("temp2", ""));
@@ -157,7 +183,9 @@ public class WeatherActivity extends Activity {
         cityNameText.setVisibility(View.VISIBLE);
 
         // 启动自动更新天气服务
-        Intent i = new Intent(this, AutoUpdateService.class);
-        this.startService(i);
+        if(startService){
+            Intent i = new Intent(this, AutoUpdateService.class);
+            this.startService(i);
+        }
     }
 }

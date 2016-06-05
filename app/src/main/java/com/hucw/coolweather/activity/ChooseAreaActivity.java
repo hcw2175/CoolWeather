@@ -17,16 +17,25 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.hucw.coolweather.R;
+import com.hucw.coolweather.api.WeatherService;
 import com.hucw.coolweather.db.CoolWeatherDB;
+import com.hucw.coolweather.helper.RetrofitHelper;
 import com.hucw.coolweather.model.City;
 import com.hucw.coolweather.model.County;
 import com.hucw.coolweather.model.Province;
 import com.hucw.coolweather.util.HttpCallbackListener;
 import com.hucw.coolweather.util.HttpUtil;
 import com.hucw.coolweather.util.ResponseUtil;
+import com.squareup.okhttp.ResponseBody;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import retrofit.Call;
+import retrofit.Callback;
+import retrofit.Response;
+import retrofit.Retrofit;
 
 /**
  * 选择区域Activity
@@ -135,7 +144,7 @@ public class ChooseAreaActivity extends Activity {
             titleText.setText("中国");
             currentLevel = LEVEL_PROVINCE;
         } else {
-            queryFromServer(null, "province");
+            queryFromServer4Retrofit("", "province");
         }
     }
 
@@ -155,7 +164,7 @@ public class ChooseAreaActivity extends Activity {
             titleText.setText(selectedProvince.getProvinceName());
             currentLevel = LEVEL_CITY;
         } else {
-            queryFromServer(selectedProvince.getProvinceCode(), "city");
+            queryFromServer4Retrofit(selectedProvince.getProvinceCode(), "city");
         }
     }
 
@@ -175,7 +184,7 @@ public class ChooseAreaActivity extends Activity {
             titleText.setText(selectedCity.getCityName());
             currentLevel = LEVEL_COUNTY;
         } else {
-            queryFromServer(selectedCity.getCityCode(), "county");
+            queryFromServer4Retrofit(selectedCity.getCityCode(), "county");
         }
     }
 
@@ -184,6 +193,7 @@ public class ChooseAreaActivity extends Activity {
      * @param code 代码
      * @param type 类型
      */
+    @Deprecated
     private void queryFromServer(final String code, final String type){
         String address;
         if(!TextUtils.isEmpty(code)){
@@ -201,11 +211,11 @@ public class ChooseAreaActivity extends Activity {
             public void onFinish(String response) {
                 boolean result;
                 if(type.equalsIgnoreCase("province")){
-                    result = ResponseUtil.handleProvinceReponse(coolWeatherDB, response);
+                    result = ResponseUtil.handleProvinceResponse(coolWeatherDB, response);
                 }else if(type.equalsIgnoreCase("city")){
-                    result = ResponseUtil.handleCityReponse(coolWeatherDB, response, selectedProvince.getId());
+                    result = ResponseUtil.handleCityResponse(coolWeatherDB, response, selectedProvince.getId());
                 }else{
-                    result = ResponseUtil.handleCountyReponse(coolWeatherDB, response, selectedCity.getId());
+                    result = ResponseUtil.handleCountyResponse(coolWeatherDB, response, selectedCity.getId());
                 }
 
                 if(result){
@@ -236,6 +246,75 @@ public class ChooseAreaActivity extends Activity {
                     public void run() {
                         closeProgressDialog();
                         Toast.makeText(ChooseAreaActivity.this, "加载失败", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
+    }
+
+    private void queryFromServer4Retrofit(final String code, final String type){
+        // 显示loading
+        this.showProgressDialog();
+
+        WeatherService weatherService = RetrofitHelper.createApi(this, WeatherService.class);
+        Call<ResponseBody> call;
+        if(!TextUtils.isEmpty(code)){
+            call =  weatherService.findArea(code);
+        }else{
+            call =  weatherService.findAllProvince();
+        }
+
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(Response<ResponseBody> response, Retrofit retrofit) {
+                try {
+                    String resp = response.body().string();
+                    Log.d(TAG, "响应数据: " + resp);
+
+                    final boolean result;
+                    if(type.equalsIgnoreCase("province")){
+                        result = ResponseUtil.handleProvinceResponse(coolWeatherDB, resp);
+                    }else if(type.equalsIgnoreCase("city")){
+                        result = ResponseUtil.handleCityResponse(coolWeatherDB, resp, selectedProvince.getId());
+                    }else{
+                        result = ResponseUtil.handleCountyResponse(coolWeatherDB, resp, selectedCity.getId());
+                    }
+
+                    // 通过runOnUiThread()方法回到主线程处理逻辑
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if(result){
+                                closeProgressDialog();
+
+                                // 重新从数据库中查询
+                                if(type.equalsIgnoreCase("province")){
+                                    queryProvinces();
+                                }else if(type.equalsIgnoreCase("city")){
+                                    queryCities();
+                                }else{
+                                    queryCounties();
+                                }
+                            }else{
+                                closeProgressDialog();
+                                Toast.makeText(ChooseAreaActivity.this, "数据请求错误，请检测URL是否正确。", Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                Log.d(TAG, "onFailure: 获取省份数据失败。");
+                t.printStackTrace();
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        closeProgressDialog();
+                        Toast.makeText(ChooseAreaActivity.this, "数据请求错误，请检测URL是否正确。", Toast.LENGTH_SHORT).show();
                     }
                 });
             }

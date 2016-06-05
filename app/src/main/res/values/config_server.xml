@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dev">true</string>
+    <string name="server">http://www.weather.com.cn/data/list3/</string>
+</resources>
